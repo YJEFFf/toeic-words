@@ -78,7 +78,6 @@ function route() {
     if (parts[1] === 'quiz') return startQuiz({ words: wrongWords(), wrongNote: true });
     return renderWrong();
   }
-  if (parts[0] === 'search') return renderSearch();
   renderHome();
 }
 window.addEventListener('hashchange', route);
@@ -109,10 +108,7 @@ function renderHome() {
       ${bar(pct(known, WORDS.length))}
     </div>
     <a class="btn primary" href="#/day/${cont}">${store.lastDay ? '이어서 하기' : '시작하기'} · Day ${cont} ›</a>
-    <div class="two">
-      <a class="btn" href="#/wrong">오답 노트 <b>${store.wrong.size}</b></a>
-      <a class="btn" href="#/search">단어 검색</a>
-    </div>
+    <a class="btn" href="#/wrong">오답 노트 <b>${store.wrong.size}</b></a>
     <h2>Day 선택 <span class="muted small">하루 약 20단어</span></h2>
     <div class="grid">${tiles}</div>
     <button class="link danger" id="reset">학습 기록 초기화</button>
@@ -221,27 +217,6 @@ function renderWrong() {
       : '<p class="empty">틀린 단어가 없어요 👍</p>'}
   `;
   bindWordList();
-}
-
-// ---------- 검색 ----------
-function renderSearch() {
-  app.innerHTML = `
-    ${header('#/', '홈', '단어 검색')}
-    <input type="search" id="q" placeholder="영단어 또는 뜻" autocomplete="off" autocapitalize="off">
-    <p class="muted small" id="qinfo"></p>
-    <ul id="wordList"></ul>
-  `;
-  const q = $('#q');
-  const draw = () => {
-    const s = q.value.trim().toLowerCase();
-    if (!s) { $('#wordList').innerHTML = ''; $('#qinfo').textContent = ''; return; }
-    const hits = WORDS.filter((w) => w.en.toLowerCase().includes(s) || w.ko.includes(s));
-    $('#qinfo').textContent = hits.length > 50 ? `${hits.length}개 중 50개 표시` : `${hits.length}개`;
-    $('#wordList').innerHTML = hits.slice(0, 50).map((w) => wordRow(w, { showDay: true, open: true })).join('');
-    bindWordList();
-  };
-  q.addEventListener('input', draw);
-  q.focus();
 }
 
 // ---------- 4지선다 테스트 ----------

@@ -111,11 +111,6 @@ button { font: inherit; color: #111; cursor: pointer; }
 #wordList .m.covered { color: transparent; background: #f2f2f2; }
 #wordList .m.covered::before { content: "탭해서 뜻 보기"; color: #bbb; font-size: 12px; position: absolute; left: 6px; top: 1px; }
 
-input[type=search] {
-  width: 100%; font: inherit; font-size: 16px;
-  padding: 12px; border: 1px solid #ddd; border-radius: 12px;
-  -webkit-appearance: none; appearance: none;
-}
 
 /* 퀴즈 */
 .qcard {
@@ -155,6 +150,6 @@ input[type=search] {
 .dot.ok { background: #2a8a2a; border-color: #2a8a2a; }
 .dot.ng { background: #d33; border-color: #d33; }
 .dot.cur { outline: 2px solid #111; outline-offset: 2px; }
-.qnav { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; margin: 12px 0 14px; }
+.qnav { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0 14px; }
 .qnav .btn { margin: 0; }
 .btn:disabled { color: #ccc; border-color: #eee; background: #fff; }
