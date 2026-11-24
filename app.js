@@ -49,20 +49,10 @@ const bar = (p) => `<div class="bar"><div style="width:${p}%"></div></div>`;
 const header = (backHref, backLabel, title, right = '') =>
   `<header class="top"><a class="back" href="${backHref}">‹ ${esc(backLabel)}</a><span class="title">${esc(title)}</span><span class="right">${right}</span></header>`;
 
-function speak(text) {
-  if (!('speechSynthesis' in window)) return;
-  speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'en-US';
-  u.rate = 0.9;
-  speechSynthesis.speak(u);
-}
-
 // ---------- 라우터 (#/day/3/words 형태) ----------
 function route() {
   const parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
   window.scrollTo(0, 0);
-  if ('speechSynthesis' in window) speechSynthesis.cancel();
   if (quiz) { clearTimeout(quiz.timer); quiz = null; } // 화면을 나가면 테스트 상태 초기화
 
   if (parts[0] === 'day') {
@@ -172,9 +162,7 @@ function bindWordList(onChange) {
   $$('#wordList li').forEach((li) => {
     const en = li.dataset.en;
     const m = li.querySelector('.m');
-    li.querySelector('.txt').addEventListener('click', () => {
-      if (!m.classList.toggle('covered')) speak(en);
-    });
+    li.querySelector('.txt').addEventListener('click', () => m.classList.toggle('covered'));
     li.querySelector('.known').addEventListener('change', (e) => {
       if (e.target.checked) { store.known.add(en); store.wrong.delete(en); }
       else store.known.delete(en);
@@ -328,7 +316,6 @@ function answer(i) {
     store.wrong.add(w.en);
   }
   store.save();
-  speak(w.en);
   renderQuestion();
   // 맞히면 자동으로 다음 문제(아직 안 푼 문제가 있을 때만), 틀리면 정답 확인 후 직접 넘김
   if (correct && idx < quiz.list.length - 1) {
