@@ -137,8 +137,6 @@ input[type=search] {
 .choices button:disabled { color: #111; }
 .choices button.correct { border-color: #2a8a2a; background: #eef8ee; }
 .choices button.wrong { border-color: #d33; background: #fdeeee; }
-.qfoot { margin-top: 10px; }
-.qfoot .btn { margin-top: 10px; }
 .toggle { font-size: 14px; color: #666; display: flex; align-items: center; gap: 6px; }
 
 /* 결과 */
@@ -150,3 +148,13 @@ input[type=search] {
 .wlist li { padding: 10px 2px; border-bottom: 1px solid #f0f0f0; }
 .wlist div { color: #555; font-size: 14px; margin-top: 2px; }
 .empty { text-align: center; color: #888; padding: 40px 0; }
+
+/* 문제 이동 */
+.dots { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 4px 0 2px; }
+.dot { width: 14px; height: 14px; padding: 0; border-radius: 50%; border: 1px solid #ccc; background: #fff; }
+.dot.ok { background: #2a8a2a; border-color: #2a8a2a; }
+.dot.ng { background: #d33; border-color: #d33; }
+.dot.cur { outline: 2px solid #111; outline-offset: 2px; }
+.qnav { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; margin: 12px 0 14px; }
+.qnav .btn { margin: 0; }
+.btn:disabled { color: #ccc; border-color: #eee; background: #fff; }

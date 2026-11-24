@@ -63,6 +63,7 @@ function route() {
   const parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
   window.scrollTo(0, 0);
   if ('speechSynthesis' in window) speechSynthesis.cancel();
+  if (quiz) { clearTimeout(quiz.timer); quiz = null; } // 화면을 나가면 테스트 상태 초기화
 
   if (parts[0] === 'day') {
     const d = Number(parts[1]);
@@ -244,11 +245,26 @@ function renderSearch() {
 }
 
 // ---------- 4지선다 테스트 ----------
+// 문제/보기는 시작할 때 한 번 만들어 두고, 답한 내용은 quiz.answers 에 저장한다.
+// 이전/다음으로 오가도 그대로 유지되고, 화면을 나가면(라우트 변경) 새로 시작한다.
 let quiz = null;
+
+function makeOptions(w) {
+  // 오답 보기: 같은 품사 우선, 뜻이 같은 단어 제외
+  const pool = WORDS.filter((x) => x.en !== w.en && x.ko !== w.ko);
+  const distractors = shuffle(pool.filter((x) => x.pos === w.pos)).slice(0, 3);
+  if (distractors.length < 3) distractors.push(...shuffle(pool.filter((x) => !distractors.includes(x))).slice(0, 3 - distractors.length));
+  return shuffle([w, ...distractors]);
+}
 
 function startQuiz({ words, day = null, wrongNote = false, retry = false }) {
   const list = shuffle(words).slice(0, QUIZ_MAX);
-  quiz = { list, idx: 0, score: 0, wrongs: [], day, wrongNote, retry, answered: false };
+  quiz = {
+    list,
+    options: list.map(makeOptions),
+    answers: list.map(() => null), // 고른 보기 번호, 안 풀었으면 null
+    idx: 0, day, wrongNote, retry, timer: null,
+  };
   if (!list.length) {
     app.innerHTML = `${header('#/wrong', '오답 노트', '오답 테스트')}<p class="empty">테스트할 단어가 없어요.</p>`;
     return;
@@ -256,83 +272,113 @@ function startQuiz({ words, day = null, wrongNote = false, retry = false }) {
   renderQuestion();
 }
 
+const isCorrect = (i) => quiz.answers[i] != null && quiz.options[i][quiz.answers[i]] === quiz.list[i];
+const quizScore = () => quiz.list.reduce((s, _, i) => s + (isCorrect(i) ? 1 : 0), 0);
+const firstUnanswered = () => quiz.answers.indexOf(null);
+
 function quizBack() {
   return quiz.day ? [`#/day/${quiz.day}`, `Day ${quiz.day}`] : ['#/wrong', '오답 노트'];
 }
 
+function goQuestion(i) {
+  clearTimeout(quiz.timer);
+  quiz.idx = Math.max(0, Math.min(i, quiz.list.length - 1));
+  renderQuestion();
+}
+
 function renderQuestion() {
-  const { list, idx } = quiz;
-  if (idx >= list.length) return renderResult();
+  const { list, idx, options } = quiz;
   const w = list[idx];
+  const opts = options[idx];
+  const picked = quiz.answers[idx];
+  const answered = picked != null;
   const rev = store.rev;
   const [bh, bl] = quizBack();
+  const isLast = idx === list.length - 1;
+  const left = quiz.answers.filter((a) => a == null).length;
 
-  // 오답 보기: 같은 품사 우선, 뜻이 같은 단어 제외
-  const pool = WORDS.filter((x) => x.en !== w.en && x.ko !== w.ko);
-  const distractors = shuffle(pool.filter((x) => x.pos === w.pos)).slice(0, 3);
-  if (distractors.length < 3) distractors.push(...shuffle(pool.filter((x) => !distractors.includes(x))).slice(0, 3 - distractors.length));
-  const options = shuffle([w, ...distractors]);
-  quiz.answered = false;
+  // 마지막 문제의 오른쪽 버튼: 다 풀었으면 결과, 아니면 안 푼 문제로
+  let nextLabel = '다음 ›';
+  if (isLast) nextLabel = left === 0 ? '결과 보기' : `안 푼 문제로 (${left})`;
+
+  const dots = list.map((_, i) => {
+    const cls = quiz.answers[i] == null ? '' : isCorrect(i) ? ' ok' : ' ng';
+    return `<button class="dot${cls}${i === idx ? ' cur' : ''}" data-i="${i}" aria-label="${i + 1}번 문제"></button>`;
+  }).join('');
 
   app.innerHTML = `
-    ${header(bh, bl, `${idx + 1} / ${list.length}`, `<span class="muted">정답 ${quiz.score}</span>`)}
-    ${bar(pct(idx, list.length))}
+    ${header(bh, bl, `${idx + 1} / ${list.length}`, `<span class="muted">정답 ${quizScore()}</span>`)}
+    <div class="dots">${dots}</div>
     <div class="qcard">
       <div class="qword">${esc(rev ? w.ko : w.en)}</div>
       <div class="p">${esc(posLabel(w.pos))}</div>
     </div>
     <div class="choices">
-      ${options.map((o, i) => `<button data-i="${i}">${esc(rev ? o.en : o.ko)}</button>`).join('')}
+      ${opts.map((o, i) => {
+        let cls = '';
+        if (answered && o === w) cls = 'correct';
+        else if (answered && i === picked) cls = 'wrong';
+        return `<button data-i="${i}" class="${cls}" ${answered ? 'disabled' : ''}>${esc(rev ? o.en : o.ko)}</button>`;
+      }).join('')}
     </div>
-    <div class="qfoot">
-      <label class="toggle"><input type="checkbox" id="rev" ${rev ? 'checked' : ''}> 뜻 보고 단어 고르기</label>
-      <button class="btn primary hidden" id="next">다음 ›</button>
+    <div class="qnav">
+      <button class="btn" id="prev" ${idx === 0 ? 'disabled' : ''}>‹ 이전</button>
+      <button class="btn${answered ? ' primary' : ''}" id="next">${nextLabel}</button>
     </div>
+    <label class="toggle"><input type="checkbox" id="rev" ${rev ? 'checked' : ''}> 뜻 보고 단어 고르기</label>
   `;
-  $$('.choices button').forEach((b) =>
-    b.addEventListener('click', () => answer(b, options[Number(b.dataset.i)] === w, w, options)));
+
+  $$('.choices button').forEach((b) => b.addEventListener('click', () => answer(Number(b.dataset.i))));
+  $$('.dot').forEach((d) => d.addEventListener('click', () => goQuestion(Number(d.dataset.i))));
+  $('#prev').addEventListener('click', () => goQuestion(idx - 1));
+  $('#next').addEventListener('click', nextQuestion);
   $('#rev').addEventListener('change', (e) => {
     store.rev = e.target.checked;
     store.save();
-    if (!quiz.answered) renderQuestion();
+    renderQuestion();
   });
-  $('#next').addEventListener('click', nextQuestion);
 }
 
-function answer(btn, correct, w, options) {
-  if (quiz.answered) return;
-  quiz.answered = true;
-  const btns = $$('.choices button');
-  btns.forEach((b) => (b.disabled = true));
-  btns[options.indexOf(w)].classList.add('correct');
+function answer(i) {
+  const idx = quiz.idx;
+  if (quiz.answers[idx] != null) return;
+  quiz.answers[idx] = i;
+  const w = quiz.list[idx];
+  const correct = isCorrect(idx);
   if (correct) {
-    quiz.score++;
     store.known.add(w.en);
     store.wrong.delete(w.en);
   } else {
-    btn.classList.add('wrong');
-    quiz.wrongs.push(w);
     store.known.delete(w.en);
     store.wrong.add(w.en);
   }
   store.save();
   speak(w.en);
-  $('.right').innerHTML = `<span class="muted">정답 ${quiz.score}</span>`;
-  // 맞히면 자동으로 다음, 틀리면 정답 확인 후 직접 넘김
-  if (correct) setTimeout(() => { if (quiz && quiz.answered && btns[0].isConnected) nextQuestion(); }, 700);
-  else $('#next').classList.remove('hidden');
+  renderQuestion();
+  // 맞히면 자동으로 다음 문제(아직 안 푼 문제가 있을 때만), 틀리면 정답 확인 후 직접 넘김
+  if (correct && idx < quiz.list.length - 1) {
+    const q = quiz;
+    q.timer = setTimeout(() => { if (quiz === q && q.idx === idx) goQuestion(idx + 1); }, 700);
+  }
 }
 
 function nextQuestion() {
-  quiz.idx++;
-  renderQuestion();
+  const { idx, list } = quiz;
+  if (idx < list.length - 1) return goQuestion(idx + 1);
+  const u = firstUnanswered();
+  if (u === -1) renderResult();
+  else goQuestion(u);
 }
 
 function renderResult() {
-  const { list, score, wrongs, day, retry } = quiz;
+  clearTimeout(quiz.timer);
+  const { list, day, retry } = quiz;
+  const score = quizScore();
+  const wrongs = list.filter((_, i) => !isCorrect(i));
   const total = list.length;
   if (day && !retry) store.best[day] = Math.max(store.best[day] ?? 0, score);
   store.save();
+  window.scrollTo(0, 0);
   const [bh, bl] = quizBack();
   const msg = score === total ? '완벽해요! 🎉' : score >= total * 0.8 ? '잘했어요!' : '틀린 단어를 한 번 더 봐요.';
   app.innerHTML = `
@@ -345,11 +391,13 @@ function renderResult() {
       <h2>틀린 단어 <span class="muted small">${wrongs.length}개</span></h2>
       <ul class="wlist">${wrongs.map((w) => `<li><b>${esc(w.en)}</b> <span class="p">${esc(posLabel(w.pos))}</span><div>${esc(w.ko)}</div></li>`).join('')}</ul>
       <button class="btn primary" id="retry">틀린 것만 다시 풀기</button>` : ''}
+    <button class="btn" id="review">문제 다시 보기</button>
     <button class="btn${wrongs.length ? '' : ' primary'}" id="again">처음부터 다시</button>
     ${day && day < PARTS.length ? `<a class="btn" href="#/day/${day + 1}">다음: Day ${day + 1} ›</a>` : ''}
   `;
-  const again = { words: quiz.retry ? list : (day ? PARTS[day - 1] : wrongWords()), day, wrongNote: quiz.wrongNote, retry: quiz.retry };
+  const again = { words: retry ? list : (day ? PARTS[day - 1] : wrongWords()), day, wrongNote: quiz.wrongNote, retry };
   $('#again').addEventListener('click', () => { startQuiz(again); window.scrollTo(0, 0); });
+  $('#review').addEventListener('click', () => goQuestion(0));
   if (wrongs.length) $('#retry').addEventListener('click', () => {
     startQuiz({ words: wrongs, day, wrongNote: quiz.wrongNote, retry: true });
     window.scrollTo(0, 0);
