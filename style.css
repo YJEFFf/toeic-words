@@ -103,3 +103,7 @@ select, input[type=search] {
 #wordList .m.covered { color: transparent; background: #f2f2f2; border-radius: 4px; }
 #wordList .m.covered::before { content: "탭해서 뜻 보기"; color: #bbb; position: absolute; }
 #wordList .m { position: relative; }
+.pager { display: flex; gap: 8px; align-items: center; margin-top: 16px; }
+.pager button { flex: 1; padding: 12px; }
+.pager button:disabled { color: #ccc; border-color: #eee; }
+.pager select { flex: 1.2; text-align: center; text-align-last: center; }

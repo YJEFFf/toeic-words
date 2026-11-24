@@ -34,7 +34,7 @@ function show(id) {
   window.scrollTo(0, 0);
   if (id === 'home') renderHome();
   if (id === 'quiz') startQuiz();
-  if (id === 'list') { $('search').value = ''; renderList(); }
+  if (id === 'list') { $('search').value = ''; listPage = 0; renderList(); }
 }
 document.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => show(b.dataset.go)));
 document.querySelectorAll('.back').forEach((b) => b.addEventListener('click', () => show('home')));
@@ -159,10 +159,25 @@ $('qNext').addEventListener('click', () => { qIdx++; renderQuestion(); });
 $('quizAgain').addEventListener('click', startQuiz);
 
 // ---------- 목록 ----------
+const PAGE_SIZE = 20;
+let listPage = 0;
+
 function renderList() {
   const q = $('search').value.trim().toLowerCase();
-  const items = scopedWords().filter((w) => !q || w.en.toLowerCase().includes(q) || w.ko.includes(q));
-  $('listCount').textContent = `${items.length}개`;
+  const all = scopedWords().filter((w) => !q || w.en.toLowerCase().includes(q) || w.ko.includes(q));
+  const pages = Math.max(1, Math.ceil(all.length / PAGE_SIZE));
+  listPage = Math.min(Math.max(listPage, 0), pages - 1);
+  const items = all.slice(listPage * PAGE_SIZE, (listPage + 1) * PAGE_SIZE);
+  $('listCount').textContent = `${all.length}개`;
+
+  // 페이지 이동
+  $('pager').classList.toggle('hidden', pages <= 1);
+  $('prevPage').disabled = listPage === 0;
+  $('nextPage').disabled = listPage === pages - 1;
+  $('pageSelect').innerHTML = Array.from({ length: pages }, (_, i) =>
+    `<option value="${i}">${i + 1} / ${pages}</option>`).join('');
+  $('pageSelect').value = listPage;
+
   const ul = $('wordList');
   ul.innerHTML = '';
   const frag = document.createDocumentFragment();
@@ -194,7 +209,15 @@ function renderList() {
   });
   ul.appendChild(frag);
 }
-$('search').addEventListener('input', renderList);
+function goPage(n) {
+  listPage = n;
+  renderList();
+  window.scrollTo(0, 0);
+}
+$('search').addEventListener('input', () => { listPage = 0; renderList(); });
+$('prevPage').addEventListener('click', () => goPage(listPage - 1));
+$('nextPage').addEventListener('click', () => goPage(listPage + 1));
+$('pageSelect').addEventListener('change', () => goPage(Number($('pageSelect').value)));
 
 // ---------- 시작 ----------
 fetch('words.json')
