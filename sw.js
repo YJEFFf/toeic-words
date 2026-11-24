@@ -1,5 +1,5 @@
-// 파일을 수정하면 버전을 올려야 새 캐시가 적용됩니다.
-const CACHE = 'toeic-words-v2';
+// 오프라인용 캐시 이름
+const CACHE = 'toeic-words-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -24,10 +24,18 @@ self.addEventListener('activate', (e) => {
   self.clients.claim();
 });
 
-// 캐시 우선, 없으면 네트워크 (오프라인 동작)
+// 네트워크 우선: 온라인이면 항상 최신 파일, 오프라인이면 캐시 사용
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   e.respondWith(
-    caches.match(e.request, { ignoreSearch: true }).then((hit) => hit || fetch(e.request))
+    fetch(e.request)
+      .then((res) => {
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(e.request, copy));
+        }
+        return res;
+      })
+      .catch(() => caches.match(e.request, { ignoreSearch: true }))
   );
 });

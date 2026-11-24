@@ -31,37 +31,10 @@
     <div class="scope-count" id="scopeCount"></div>
 
     <div class="menu">
-      <button class="big" data-go="flash">플래시카드</button>
       <button class="big" data-go="quiz">4지선다 퀴즈</button>
       <button class="big" data-go="list">단어 목록</button>
     </div>
     <button class="link danger" id="reset">학습 기록 초기화</button>
-  </section>
-
-  <!-- 플래시카드 -->
-  <section id="flash" class="screen">
-    <header class="bar">
-      <button class="back">← 홈</button>
-      <span id="flashProgress"></span>
-    </header>
-    <div class="card" id="card">
-      <div class="word" id="fWord"></div>
-      <div class="pos" id="fPos"></div>
-      <div class="meaning hidden" id="fMeaning"></div>
-      <div class="hint" id="fHint">탭해서 뜻 보기</div>
-    </div>
-    <div class="row">
-      <button id="speakF" class="ghost">🔊 발음</button>
-      <label class="toggle"><input type="checkbox" id="reverseF"> 뜻 먼저</label>
-    </div>
-    <div class="row actions">
-      <button id="fNo" class="no">몰라요</button>
-      <button id="fYes" class="yes">알아요</button>
-    </div>
-    <div class="done hidden" id="flashDone">
-      <p>이번 세트를 다 봤어요!</p>
-      <button class="big" id="flashAgain">다시 하기</button>
-    </div>
   </section>
 
   <!-- 퀴즈 -->

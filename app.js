@@ -33,9 +33,8 @@ function show(id) {
   document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('active', s.id === id));
   window.scrollTo(0, 0);
   if (id === 'home') renderHome();
-  if (id === 'flash') startFlash();
   if (id === 'quiz') startQuiz();
-  if (id === 'list') renderList();
+  if (id === 'list') { $('search').value = ''; renderList(); }
 }
 document.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => show(b.dataset.go)));
 document.querySelectorAll('.back').forEach((b) => b.addEventListener('click', () => show('home')));
@@ -80,86 +79,6 @@ function speak(text) {
   u.rate = 0.9;
   speechSynthesis.speak(u);
 }
-
-// ---------- 플래시카드 ----------
-let fQueue = [];
-let fTotal = 0;
-let fRevealed = false;
-
-$('reverseF').checked = localStorage.getItem('reverseF') === '1';
-$('reverseF').addEventListener('change', () => {
-  localStorage.setItem('reverseF', $('reverseF').checked ? '1' : '0');
-  renderCard();
-});
-
-function startFlash() {
-  fQueue = shuffle(scopedWords());
-  fTotal = fQueue.length;
-  renderCard();
-}
-
-function renderCard() {
-  const empty = fQueue.length === 0;
-  $('flashDone').classList.toggle('hidden', !empty);
-  $('card').classList.toggle('hidden', empty);
-  document.querySelectorAll('#flash .row').forEach((r) => r.classList.toggle('hidden', empty));
-  $('flashProgress').textContent = fTotal ? `남은 카드 ${fQueue.length} / ${fTotal}` : '';
-  if (empty) {
-    $('flashDone').querySelector('p').textContent = fTotal
-      ? '이번 세트를 다 봤어요!'
-      : '선택한 범위에 단어가 없어요.';
-    return;
-  }
-  const w = fQueue[0];
-  const rev = $('reverseF').checked;
-  fRevealed = false;
-  $('fWord').textContent = rev ? w.ko : w.en;
-  $('fPos').textContent = posLabel(w.pos);
-  $('fMeaning').textContent = rev ? w.en : w.ko;
-  $('fMeaning').classList.add('hidden');
-  $('fHint').classList.remove('hidden');
-}
-
-function reveal() {
-  if (!fQueue.length || fRevealed) return;
-  fRevealed = true;
-  $('fMeaning').classList.remove('hidden');
-  $('fHint').classList.add('hidden');
-}
-
-$('card').addEventListener('click', reveal);
-$('speakF').addEventListener('click', () => fQueue[0] && speak(fQueue[0].en));
-
-$('fYes').addEventListener('click', () => {
-  if (!fQueue.length) return;
-  const w = fQueue.shift();
-  store.known.add(w.en);
-  store.wrong.delete(w.en);
-  store.save();
-  renderCard();
-});
-
-$('fNo').addEventListener('click', () => {
-  if (!fQueue.length) return;
-  const w = fQueue.shift();
-  store.known.delete(w.en);
-  store.wrong.add(w.en);
-  store.save();
-  // 몇 장 뒤에 다시 나오도록 다시 넣기
-  const pos = Math.min(fQueue.length, 5 + Math.floor(Math.random() * 5));
-  fQueue.splice(pos, 0, w);
-  renderCard();
-});
-
-$('flashAgain').addEventListener('click', startFlash);
-
-// 키보드 (데스크톱): Space 뜻 보기, ← 몰라요, → 알아요
-document.addEventListener('keydown', (e) => {
-  if (!$('flash').classList.contains('active')) return;
-  if (e.key === ' ') { e.preventDefault(); reveal(); }
-  if (e.key === 'ArrowLeft') $('fNo').click();
-  if (e.key === 'ArrowRight') $('fYes').click();
-});
 
 // ---------- 퀴즈 ----------
 let qList = [];
@@ -260,11 +179,16 @@ function renderList() {
     });
     const txt = document.createElement('div');
     txt.className = 'txt';
-    txt.innerHTML = `<span class="w"></span><span class="p"></span>${store.wrong.has(w.en) ? ' <span class="x">오답</span>' : ''}<div class="m"></div>`;
+    txt.innerHTML = `<span class="w"></span><span class="p"></span>${store.wrong.has(w.en) ? ' <span class="x">오답</span>' : ''}<div class="m covered"></div>`;
     txt.querySelector('.w').textContent = w.en;
     txt.querySelector('.p').textContent = w.pos;
-    txt.querySelector('.m').textContent = w.ko;
-    txt.addEventListener('click', () => speak(w.en));
+    const m = txt.querySelector('.m');
+    m.textContent = w.ko;
+    // 탭하면 뜻 보이기/가리기 (보일 때 발음)
+    txt.addEventListener('click', () => {
+      if (m.classList.toggle('covered')) return;
+      speak(w.en);
+    });
     li.append(cb, txt);
     frag.appendChild(li);
   });
