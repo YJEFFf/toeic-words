@@ -15,64 +15,7 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- 홈 -->
-  <section id="home" class="screen active">
-    <h1>토익 단어</h1>
-    <div class="stats" id="stats"></div>
-
-    <label class="field">
-      <span>범위</span>
-      <select id="scope">
-        <option value="unknown">안 외운 단어</option>
-        <option value="all">전체</option>
-        <option value="wrong">오답 노트</option>
-      </select>
-    </label>
-    <div class="scope-count" id="scopeCount"></div>
-
-    <div class="menu">
-      <button class="big" data-go="quiz">4지선다 퀴즈</button>
-      <button class="big" data-go="list">단어 목록</button>
-    </div>
-    <button class="link danger" id="reset">학습 기록 초기화</button>
-  </section>
-
-  <!-- 퀴즈 -->
-  <section id="quiz" class="screen">
-    <header class="bar">
-      <button class="back">← 홈</button>
-      <span id="quizProgress"></span>
-    </header>
-    <div class="row">
-      <label class="toggle"><input type="checkbox" id="reverseQ"> 뜻 → 단어</label>
-    </div>
-    <div class="card small">
-      <div class="word" id="qWord"></div>
-      <div class="pos" id="qPos"></div>
-    </div>
-    <div class="choices" id="choices"></div>
-    <button class="big hidden" id="qNext">다음</button>
-    <div class="done hidden" id="quizDone">
-      <p id="quizScore"></p>
-      <button class="big" id="quizAgain">다시 하기</button>
-    </div>
-  </section>
-
-  <!-- 목록 -->
-  <section id="list" class="screen">
-    <header class="bar">
-      <button class="back">← 홈</button>
-      <span id="listCount"></span>
-    </header>
-    <input type="search" id="search" placeholder="단어 또는 뜻 검색">
-    <ul id="wordList"></ul>
-    <div class="pager" id="pager">
-      <button id="prevPage">‹ 이전</button>
-      <select id="pageSelect"></select>
-      <button id="nextPage">다음 ›</button>
-    </div>
-  </section>
-
+  <main id="app"><p class="muted center">불러오는 중…</p></main>
   <script src="app.js"></script>
 </body>
 </html>
