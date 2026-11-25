@@ -3,7 +3,7 @@
 // 전체 단어를 Day 1~60(약 20개씩)으로 나눠서 "단어 외우기 → 4지선다 테스트" 순서로 공부한다.
 
 const PART_COUNT = 60;
-const QUIZ_MAX = 20; // 오답 노트 테스트 최대 문항 수 (Day 테스트는 그 Day 단어 전부)
+const QUIZ_MAX = 20; // 오답 노트·랜덤 테스트 문항 수 (Day 테스트는 그 Day 단어 전부)
 const POS_KO = {
   n: '명사', v: '동사', adj: '형용사', adv: '부사', phr: '구',
   conj: '접속사', prep: '전치사', 'n/v': '명사/동사', 'adj/n': '형용사/명사', 'v/n': '동사/명사',
@@ -64,6 +64,7 @@ function route() {
     if (parts[2] === 'quiz') return startQuiz({ words: PARTS[d - 1], day: d });
     return renderDay(d);
   }
+  if (parts[0] === 'random') return startQuiz({ words: WORDS, random: true });
   if (parts[0] === 'wrong') {
     if (parts[1] === 'quiz') return startQuiz({ words: wrongWords(), wrongNote: true });
     return renderWrong();
@@ -98,6 +99,7 @@ function renderHome() {
       ${bar(pct(known, WORDS.length))}
     </div>
     <a class="btn primary" href="#/day/${cont}">${store.lastDay ? '이어서 하기' : '시작하기'} · Day ${cont} ›</a>
+    <a class="btn" href="#/random">전체 랜덤 테스트 <span class="muted">${QUIZ_MAX}문제</span></a>
     <a class="btn" href="#/wrong">오답 노트 <b>${store.wrong.size}</b></a>
     <h2>Day 선택 <span class="muted small">하루 약 20단어</span></h2>
     <div class="grid">${tiles}</div>
@@ -220,13 +222,13 @@ function makeOptions(w) {
   return shuffle([w, ...distractors]);
 }
 
-function startQuiz({ words, day = null, wrongNote = false, retry = false }) {
-  const list = wrongNote ? shuffle(words).slice(0, QUIZ_MAX) : shuffle(words);
+function startQuiz({ words, day = null, wrongNote = false, random = false, retry = false }) {
+  const list = (wrongNote || random) && !retry ? shuffle(words).slice(0, QUIZ_MAX) : shuffle(words);
   quiz = {
     list,
     options: list.map(makeOptions),
     answers: list.map(() => null), // 고른 보기 번호, 안 풀었으면 null
-    idx: 0, day, wrongNote, retry, timer: null,
+    idx: 0, day, wrongNote, random, retry, timer: null,
   };
   if (!list.length) {
     app.innerHTML = `${header('#/wrong', '오답 노트', '오답 테스트')}<p class="empty">테스트할 단어가 없어요.</p>`;
@@ -240,7 +242,8 @@ const quizScore = () => quiz.list.reduce((s, _, i) => s + (isCorrect(i) ? 1 : 0)
 const firstUnanswered = () => quiz.answers.indexOf(null);
 
 function quizBack() {
-  return quiz.day ? [`#/day/${quiz.day}`, `Day ${quiz.day}`] : ['#/wrong', '오답 노트'];
+  if (quiz.day) return [`#/day/${quiz.day}`, `Day ${quiz.day}`];
+  return quiz.random ? ['#/', '홈'] : ['#/wrong', '오답 노트'];
 }
 
 function goQuestion(i) {
@@ -334,7 +337,7 @@ function nextQuestion() {
 
 function renderResult() {
   clearTimeout(quiz.timer);
-  const { list, day, retry } = quiz;
+  const { list, day, random, retry } = quiz;
   const score = quizScore();
   const wrongs = list.filter((_, i) => !isCorrect(i));
   const total = list.length;
@@ -351,17 +354,17 @@ function renderResult() {
     </div>
     ${wrongs.length ? `
       <h2>틀린 단어 <span class="muted small">${wrongs.length}개</span></h2>
-      <ul class="wlist">${wrongs.map((w) => `<li><b>${esc(w.en)}</b> <span class="p">${esc(posLabel(w.pos))}</span><div>${esc(w.ko)}</div></li>`).join('')}</ul>
+      <ul class="wlist">${wrongs.map((w) => `<li><b>${esc(w.en)}</b> <span class="p">${esc(posLabel(w.pos))}</span>${random ? ` <span class="dtag">Day ${w.day}</span>` : ''}<div>${esc(w.ko)}</div></li>`).join('')}</ul>
       <button class="btn primary" id="retry">틀린 것만 다시 풀기</button>` : ''}
     <button class="btn" id="review">문제 다시 보기</button>
-    <button class="btn${wrongs.length ? '' : ' primary'}" id="again">처음부터 다시</button>
+    <button class="btn${wrongs.length ? '' : ' primary'}" id="again">${random && !retry ? '새 문제로 다시' : '처음부터 다시'}</button>
     ${day && day < PARTS.length ? `<a class="btn" href="#/day/${day + 1}">다음: Day ${day + 1} ›</a>` : ''}
   `;
-  const again = { words: retry ? list : (day ? PARTS[day - 1] : wrongWords()), day, wrongNote: quiz.wrongNote, retry };
+  const again = { words: retry ? list : (day ? PARTS[day - 1] : random ? WORDS : wrongWords()), day, wrongNote: quiz.wrongNote, random, retry };
   $('#again').addEventListener('click', () => { startQuiz(again); window.scrollTo(0, 0); });
   $('#review').addEventListener('click', () => goQuestion(0));
   if (wrongs.length) $('#retry').addEventListener('click', () => {
-    startQuiz({ words: wrongs, day, wrongNote: quiz.wrongNote, retry: true });
+    startQuiz({ words: wrongs, day, wrongNote: quiz.wrongNote, random, retry: true });
     window.scrollTo(0, 0);
   });
 }
