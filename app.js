@@ -3,7 +3,7 @@
 // 전체 단어를 Day 1~60(약 20개씩)으로 나눠서 "단어 외우기 → 4지선다 테스트" 순서로 공부한다.
 
 const PART_COUNT = 60;
-const QUIZ_MAX = 20;
+const QUIZ_MAX = 20; // 오답 노트 테스트 최대 문항 수 (Day 테스트는 그 Day 단어 전부)
 const POS_KO = {
   n: '명사', v: '동사', adj: '형용사', adv: '부사', phr: '구',
   conj: '접속사', prep: '전치사', 'n/v': '명사/동사', 'adj/n': '형용사/명사', 'v/n': '동사/명사',
@@ -221,7 +221,7 @@ function makeOptions(w) {
 }
 
 function startQuiz({ words, day = null, wrongNote = false, retry = false }) {
-  const list = shuffle(words).slice(0, QUIZ_MAX);
+  const list = wrongNote ? shuffle(words).slice(0, QUIZ_MAX) : shuffle(words);
   quiz = {
     list,
     options: list.map(makeOptions),

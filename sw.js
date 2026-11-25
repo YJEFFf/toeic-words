@@ -1,5 +1,5 @@
 // 오프라인용 캐시 이름
-const CACHE = 'toeic-words-v8';
+const CACHE = 'toeic-words-v9';
 const ASSETS = [
   './',
   './index.html',
